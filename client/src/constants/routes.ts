@@ -5,6 +5,7 @@ export const ROUTES = {
   DASHBOARD: "/dashboard",
   EMERGENCY: "/emergency",
   DANGER_MODE: "/danger-mode",
+  MAP: "/map",
   HISTORY: "/history",
   PROFILE: "/profile",
   SETTINGS: "/settings",
