@@ -15,7 +15,7 @@ async function recordHeartbeat(sessionId, userId, metadata = {}) {
     throw err;
   }
 
-  if (session.status !== 'active') {
+  if (session.status !== 'active' && session.status !== 'escalated') {
     const err = new Error('Session is not active');
     err.statusCode = 400;
     throw err;
@@ -36,8 +36,26 @@ async function recordHeartbeat(sessionId, userId, metadata = {}) {
     metadata,
   });
 
-  if (session.missedHeartbeatCount > 0) {
+  if (session.missedHeartbeatCount > 0 || session.status === 'escalated') {
+    const wasEscalated = session.status === 'escalated';
     session.missedHeartbeatCount = 0;
+    if (wasEscalated) {
+      session.status = 'active';
+      await Incident.create({
+        user: userId,
+        session: sessionId,
+        type: 'SESSION_RESOLVED',
+        message: 'Session de-escalated: heartbeat received during escalated state',
+        severity: 'info',
+        metadata: { previousEscalationLevel: session.escalationLevel },
+      });
+      socketService.emitEmergencyUpdate(session._id, {
+        type: 'DEESCALATION',
+        sessionId: session._id,
+        status: 'active',
+        escalationLevel: session.escalationLevel,
+      });
+    }
     await session.save();
   }
 
@@ -68,7 +86,7 @@ async function recordMissedHeartbeat(sessionId, userId) {
     throw err;
   }
 
-  if (session.status !== 'active') {
+  if (session.status !== 'active' && session.status !== 'escalated') {
     const err = new Error('Session is not active');
     err.statusCode = 400;
     throw err;

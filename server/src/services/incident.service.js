@@ -1,4 +1,5 @@
 const Incident = require('../models/Incident');
+const EmergencySession = require('../models/EmergencySession');
 
 async function createIncidentEntry({ userId, sessionId, type, message, severity = 'info', metadata = {} }) {
   const incident = await Incident.create({
@@ -13,6 +14,13 @@ async function createIncidentEntry({ userId, sessionId, type, message, severity 
 }
 
 async function getIncidentTimeline(sessionId, userId, { page = 1, limit = 50 } = {}) {
+  const session = await EmergencySession.findOne({ _id: sessionId, user: userId });
+  if (!session) {
+    const err = new Error('Emergency session not found');
+    err.statusCode = 404;
+    throw err;
+  }
+
   const skip = (page - 1) * limit;
   const [incidents, total] = await Promise.all([
     Incident.find({ session: sessionId, user: userId })
