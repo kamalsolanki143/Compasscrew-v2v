@@ -4,9 +4,17 @@ let io = null;
 
 function initSocket(server) {
   const { Server } = require('socket.io');
+  const socketOrigins = (process.env.CLIENT_URL || '*').split(',').map(s => s.trim());
+
   io = new Server(server, {
     cors: {
-      origin: process.env.CLIENT_URL || '*',
+      origin: (origin, callback) => {
+        if (!origin || socketOrigins.includes('*') || socketOrigins.includes(origin)) {
+          callback(null, true);
+        } else {
+          callback(new Error('Not allowed by CORS'));
+        }
+      },
       methods: ['GET', 'POST'],
       credentials: true,
     },

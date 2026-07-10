@@ -19,8 +19,16 @@ const aiRoutes = require('./routes/ai.routes');
 const app = express();
 
 app.use(helmet());
+const allowedOrigins = (process.env.CLIENT_URL || '*').split(',').map(s => s.trim());
+
 app.use(cors({
-  origin: process.env.CLIENT_URL || '*',
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes('*') || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
 }));
 app.use(express.json({ limit: '10mb' }));
